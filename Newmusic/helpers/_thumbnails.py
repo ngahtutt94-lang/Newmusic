@@ -1,16 +1,16 @@
 #Khithlainhtet
 
-
 import os
 import aiohttp
+import textwrap
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 from Newmusic import config
 from Newmusic.helpers import Track
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(file))
 
 class Thumbnail:
-    def __init__(self):
+    def init(self):
         self.size = (1280, 720)
         self.session: aiohttp.ClientSession | None = None
         
@@ -24,10 +24,18 @@ class Thumbnail:
             self.font_time = ImageFont.truetype(info_font_path, 22)
             self.font_credit = ImageFont.truetype(info_font_path, 26)
         except:
-            self.font_title = ImageFont.load_default(size=40)
-            self.font_info = ImageFont.load_default(size=28)
-            self.font_time = ImageFont.load_default(size=22)
-            self.font_credit = ImageFont.load_default(size=26)
+            
+            self.font_title = ImageFont.load_default()
+            self.font_info = ImageFont.load_default()
+            self.font_time = ImageFont.load_default()
+            self.font_credit = ImageFont.load_default()
+
+    def _wrap_text(self, text, font, max_width):
+        """စာသားရှည်ရင် ဘောင်အကျယ်အလိုက် ဖြတ်ပေးမယ့် function"""
+        avg_char_width = font.getlength('x') if hasattr(font, 'getlength') else 10
+        chars_per_line = int(max_width / avg_char_width)
+        wrapper = textwrap.TextWrapper(width=chars_per_line, break_long_words=True)
+        return wrapper.wrap(text=text)
 
     async def start(self) -> None:
         if not self.session or self.session.closed:
@@ -61,7 +69,6 @@ class Thumbnail:
             if os.path.exists(output):
                 return output
 
-            
             success = await self.save_thumb(temp, song.thumbnail)
             
             if success and os.path.exists(temp):
@@ -71,8 +78,8 @@ class Thumbnail:
 
             
             bg = ImageOps.fit(raw_cover, self.size, method=Image.Resampling.LANCZOS)
-            bg = bg.filter(ImageFilter.GaussianBlur(40))
-            bg = ImageEnhance.Brightness(bg).enhance(0.6)
+            bg = bg.filter(ImageFilter.GaussianBlur(50))
+            bg = ImageEnhance.Brightness(bg).enhance(0.7)
             draw = ImageDraw.Draw(bg)
 
             
@@ -90,35 +97,40 @@ class Thumbnail:
             
             draw.rounded_rectangle((cx-3, cy-3, cx+c_size+3, cy+c_size+3), 28, outline=(255, 200, 50), width=4)
             bg.paste(cover_img, (cx, cy), cover_img)
-
-            
+            # စာသားများ (Details & Now Playing)
             tx, ty = cx + c_size + 40, cy + 20
             details = "If you want to create your own music bot\nplease contact the developer mentioned in\nthe credit below."
             draw.text((tx, ty), details, font=self.font_time, fill=(255, 255, 0), spacing=8)
-
             draw.text((tx, ty + 140), "Now Playing", font=self.font_info, fill=(255, 255, 0))
 
-
-            title = (song.title[:45] + '...') if len(song.title) > 45 else song.title
-            draw.text((tx, ty + 185), title, font=self.font_title, fill=(255, 255, 255))
-
             
+            max_text_width = player_w - c_size - 100 
+            wrapped_title = self._wrap_text(song.title, self.font_title, max_text_width)
+            
+            current_y = ty + 185
+            
+            for line in wrapped_title[:2]:
+                draw.text((tx, current_y), line, font=self.font_title, fill=(255, 255, 255))
+                current_y += 50 
+            # ---------------------------------------------------
+
+            # Progress Bar
             bar_w, bx, by = player_w - 80, px + 40, py + player_h - 110
             draw.rounded_rectangle((bx, by, bx + bar_w, by + 8), 4, fill=(60, 60, 60))
             draw.rounded_rectangle((bx, by, bx + (bar_w * 0.4), by + 8), 4, fill=(255, 200, 50))
             draw.ellipse((bx + (bar_w * 0.4) - 8, by - 4, bx + (bar_w * 0.4) + 8, by + 12), fill=(255, 200, 50))
 
-            
+            # Time Labels
             draw.text((bx, by + 20), "1:24", font=self.font_time, fill=(255, 255, 255))
             draw.text((bx + bar_w, by + 20), "3:45", font=self.font_time, fill="white", anchor="ra")
 
-            
+            # Playback Controls (Symbols)
             ctrl_y = by + 50
             draw.text((self.size[0]//2 - 100, ctrl_y), "<<", font=self.font_title, fill=(255, 255, 255), anchor="ma")
             draw.text((self.size[0]//2, ctrl_y), "||", font=self.font_title, fill=(255, 255, 255), anchor="ma")
             draw.text((self.size[0]//2 + 100, ctrl_y), ">>", font=self.font_title, fill=(255, 255, 255), anchor="ma")
 
-            
+            # Credit Text
             draw.text((self.size[0]//2, self.size[1] - 40), "Credit by @HANTHAR999", font=self.font_credit, fill=(255, 255, 255), anchor="ma")
 
             bg.save(output, "PNG")
