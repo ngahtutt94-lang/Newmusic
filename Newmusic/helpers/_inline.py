@@ -47,7 +47,7 @@ class Inline:
             ]]
         else:
             cbs = ["admins", "auth", "blist", "lang", "ping", "play", "queue", "stats", "sudo"]
-            buttons = [self.ikb(text=f"🇲🇲 {_lang[f'help_{i}']}", callback_data=f"help {cb}") for i, cb in enumerate(cbs)]
+            buttons = [self.ikb(text=f"✦ {_lang[f'help_{i}']}", callback_data=f"help {cb}") for i, cb in enumerate(cbs)]
             rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         return self.ikm(rows)
 
@@ -65,7 +65,7 @@ class Inline:
         return self.ikm(rows)
 
     def ping_markup(self, text: str) -> types.InlineKeyboardMarkup:
-        return self.ikm([[self.ikb(text=text, url=config.SUPPORT_CHAT, style=ButtonStyle.SUCCESS)]])
+        return self.ikm([[self.ikb(text=text, url=config.SUPPORT_CHAT, style=ButtonStyle.PRIMARY)]])
 
     def play_queued(self, chat_id: int, item_id: str, _text: str) -> types.InlineKeyboardMarkup:
         return self.ikm([[self.ikb(text=_text, callback_data=f"controls force {chat_id} {item_id}", style=ButtonStyle.PRIMARY)]])
